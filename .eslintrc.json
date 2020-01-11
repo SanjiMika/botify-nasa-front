@@ -1,0 +1,7 @@
+{
+  "extends": "react-app",
+  "rules": {
+    "no-console": ["warn"],
+    "no-warning-comments": ["warn", { "terms": ["todo", "fixme"], "location": "anywhere" }]
+  }
+}
