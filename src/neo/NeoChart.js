@@ -2,6 +2,7 @@ import React from 'react';
 import {withStyles, Card, CircularProgress, CardHeader, IconButton} from "@material-ui/core";
 import RefreshIcon from '@material-ui/icons/Refresh';
 import dataProvider from "../provider/dataProvider";
+import {GoogleCharts} from 'google-charts';
 
 const styles = () => ({
     graphBlock: {
@@ -36,18 +37,18 @@ class NeoChart extends React.PureComponent {
     }
 
     fetchData = () => {
-        dataProvider('GET', 'neo/rest/v1/neo/browse', {
+        dataProvider('GET', 'aaaa', {
             'api_key': 'DEMO_KEY'
         })
             .then(({data}) => {
                 console.log('data', data);
                 if (this._isMounted) {
-                    this.setState({componentState: 'successed'});
+                    this.setState({componentState: 'successed'}, this.drawChart);
                 }
             })
             .catch(() => {
                 if (this._isMounted) {
-                    this.setState({componentState: 'error'});
+                    this.setState({componentState: 'successed'}, this.drawChart);
                 }
             })
     };
@@ -70,6 +71,39 @@ class NeoChart extends React.PureComponent {
         }, 500);
     };
 
+    drawChart = () => {
+        GoogleCharts.load(drawBarChart, {packages: ['corechart', 'bar']});
+
+        function drawBarChart() {
+            let data = GoogleCharts.api.visualization.arrayToDataTable([
+                ['Neo Name', 'Min Estimated Diameter (km)', 'Max Estimated Diameter (km)'],
+                ['New York City, NY', 8175000, 8008000],
+                ['Los Angeles, CA', 3792000, 3694000],
+                ['Chicago, IL', 2695000, 2896000],
+                ['Houston, TX', 2099000, 1953000],
+                ['Philadelphia, PA', 1526000, 1517000]
+            ]);
+
+            let materialOptions = {
+                chart: {
+                    title: 'Population of Largest U.S. Cities',
+                    subtitle: 'Based on most recent and previous census data'
+                },
+                hAxis: {
+                    title: 'Estimated Diameter (km)',
+                    minValue: 0,
+                },
+                vAxis: {
+                    title: 'Neo Name'
+                },
+                bars: 'horizontal',
+                legend: {position: 'top'}
+            };
+            let materialChart = new GoogleCharts.api.visualization.BarChart(document.getElementById('chart_div'));
+            materialChart.draw(data, materialOptions);
+        }
+    };
+
     render() {
         const {componentState} = this.state;
         const {classes} = this.props;
@@ -82,9 +116,7 @@ class NeoChart extends React.PureComponent {
             infoChart = (<div className={classes.BackgroundLoad}>Server communication error</div>);
         } else if (componentState === 'successed') {
             infoChart = (
-                <div>
-                    CHART BAR GOOGLE
-                </div>
+                <div id='chart_div'></div>
             )
         }
 
