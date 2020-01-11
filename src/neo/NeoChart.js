@@ -18,10 +18,6 @@ const styles = () => ({
             lineHeight: '1.2'
         }
     },
-    section: {
-        backgroundColor: 'white',
-        position: 'relative',
-    },
 });
 
 class NeoChart extends React.PureComponent {
@@ -67,6 +63,10 @@ class NeoChart extends React.PureComponent {
                         let ele = rawData[i];
                         computedData.push([ele.name, ele.estimated_diameter.kilometers.estimated_diameter_min, ele.estimated_diameter.kilometers.estimated_diameter_max]);
                     }
+                    // sorted by average estimated diameter descending
+                    computedData.sort(function (a, b) {
+                        return b[1] + b[2] - (a[1] + a[2]);
+                    });
                     this.setState({componentState: 'successed', computedData: computedData}, this.drawChart);
                 }
             })
@@ -143,9 +143,9 @@ class NeoChart extends React.PureComponent {
                         </IconButton>
                     }
                 />
-                <div className={classes.section}>
+                <div>
                     {infoChart}
-                    <div id='neo_chart' style={{height: '550px'}}></div>
+                    <div id='neo_chart' style={{height: '900px'}}></div>
                 </div>
             </Card>
         )
