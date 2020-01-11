@@ -1,5 +1,5 @@
 import React from 'react';
-import {withStyles, Card, CircularProgress, CardHeader, IconButton} from "@material-ui/core";
+import {withStyles, Card, LinearProgress, CardHeader, IconButton} from "@material-ui/core";
 import RefreshIcon from '@material-ui/icons/Refresh';
 import dataProvider from "../provider/dataProvider";
 import {GoogleCharts} from 'google-charts';
@@ -9,8 +9,8 @@ const styles = () => ({
         backgroundColor: 'transparent'
     },
     styleAdnCardHeader: {
+        textAlign: "left",
         borderBottom: '1px #e8e8e8 solid',
-        padding: '20px 30px',
 
         '@media (max-width: 600px)': {
             padding: '16px !important',
@@ -19,11 +19,8 @@ const styles = () => ({
         }
     },
     section: {
-        boxShadow: '0 1px 1px rgba(0,0,0,.1)',
         backgroundColor: 'white',
-        padding: '24px',
         position: 'relative',
-        marginBottom: '24px'
     },
 });
 
@@ -32,23 +29,50 @@ class NeoChart extends React.PureComponent {
         super(props);
         this._isMounted = true;
         this.state = {
-            componentState: 'loading' // loading => successed, error
+            componentState: 'loading', // loading => successed, error
+            computedData: []
+        };
+
+        // Object neoChart with element div with id='neo_chart'
+        this.neoChart = null;
+        // Meta for neoChart
+        this.chartOptions = {
+            chart: {
+                title: 'Population of Largest U.S. Cities',
+                subtitle: 'Based on most recent and previous census data'
+            },
+            hAxis: {
+                title: 'Estimated Diameter (km)',
+                minValue: 0,
+            },
+            vAxis: {
+                title: 'Neo Name'
+            },
+            bars: 'horizontal',
+            legend: {position: 'top'}
         };
     }
 
     fetchData = () => {
-        dataProvider('GET', 'aaaa', {
+        dataProvider('GET', 'neo/rest/v1/neo/browse', {
             'api_key': 'DEMO_KEY'
         })
             .then(({data}) => {
-                console.log('data', data);
                 if (this._isMounted) {
-                    this.setState({componentState: 'successed'}, this.drawChart);
+                    let computedData = [];
+                    computedData.push(['Neo Name', 'Min Estimated Diameter (km)', 'Max Estimated Diameter (km)']);
+
+                    const rawData = data['near_earth_objects'];
+                    for (let i = 0; i < rawData.length; i++) {
+                        let ele = rawData[i];
+                        computedData.push([ele.name, ele.estimated_diameter.kilometers.estimated_diameter_min, ele.estimated_diameter.kilometers.estimated_diameter_max]);
+                    }
+                    this.setState({componentState: 'successed', computedData: computedData}, this.drawChart);
                 }
             })
             .catch(() => {
                 if (this._isMounted) {
-                    this.setState({componentState: 'successed'}, this.drawChart);
+                    this.setState({componentState: 'error', computedData: []}, this.drawChart);
                 }
             })
     };
@@ -71,36 +95,28 @@ class NeoChart extends React.PureComponent {
         }, 500);
     };
 
+    drawChartCallBack = () => {
+        const {computedData} = this.state;
+
+        if (computedData.length > 0) { // neoChart with data
+            if (!this.neoChart) { // Init neoChart
+                this.neoChart = new GoogleCharts.api.visualization.BarChart(document.getElementById('neo_chart'));
+            }
+            // Update neoChart
+            let data = GoogleCharts.api.visualization.arrayToDataTable(computedData);
+            this.neoChart.draw(data, this.chartOptions);
+        } else { // Empty data
+            if (this.neoChart) {
+                this.neoChart.clearChart();
+            }
+        }
+    };
+
     drawChart = () => {
-        GoogleCharts.load(drawBarChart, {packages: ['corechart', 'bar']});
-
-        function drawBarChart() {
-            let data = GoogleCharts.api.visualization.arrayToDataTable([
-                ['Neo Name', 'Min Estimated Diameter (km)', 'Max Estimated Diameter (km)'],
-                ['New York City, NY', 8175000, 8008000],
-                ['Los Angeles, CA', 3792000, 3694000],
-                ['Chicago, IL', 2695000, 2896000],
-                ['Houston, TX', 2099000, 1953000],
-                ['Philadelphia, PA', 1526000, 1517000]
-            ]);
-
-            let materialOptions = {
-                chart: {
-                    title: 'Population of Largest U.S. Cities',
-                    subtitle: 'Based on most recent and previous census data'
-                },
-                hAxis: {
-                    title: 'Estimated Diameter (km)',
-                    minValue: 0,
-                },
-                vAxis: {
-                    title: 'Neo Name'
-                },
-                bars: 'horizontal',
-                legend: {position: 'top'}
-            };
-            let materialChart = new GoogleCharts.api.visualization.BarChart(document.getElementById('chart_div'));
-            materialChart.draw(data, materialOptions);
+        if (!this.neoChart) { // Init neoChart
+            GoogleCharts.load(this.drawChartCallBack, {packages: ['corechart', 'bar']});
+        } else { // Update neoChart
+            this.drawChartCallBack();
         }
     };
 
@@ -111,13 +127,9 @@ class NeoChart extends React.PureComponent {
         let infoChart = '';
 
         if (componentState === 'loading') {
-            infoChart = (<div className={classes.BackgroundLoad}><CircularProgress/></div>);
+            infoChart = (<div className={classes.BackgroundLoad}><LinearProgress/></div>);
         } else if (componentState === 'error') {
             infoChart = (<div className={classes.BackgroundLoad}>Server communication error</div>);
-        } else if (componentState === 'successed') {
-            infoChart = (
-                <div id='chart_div'></div>
-            )
         }
 
         return (
@@ -126,13 +138,14 @@ class NeoChart extends React.PureComponent {
                     title='Step 1: Data Visualization'
                     className={classes.styleAdnCardHeader}
                     action={
-                        <IconButton aria-label="settings" onClick={this.refreshData}>
+                        <IconButton aria-label="refresh" onClick={this.refreshData}>
                             <RefreshIcon/>
                         </IconButton>
                     }
                 />
                 <div className={classes.section}>
                     {infoChart}
+                    <div id='neo_chart' style={{height: '550px'}}></div>
                 </div>
             </Card>
         )
