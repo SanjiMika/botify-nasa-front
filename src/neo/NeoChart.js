@@ -1,9 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {withStyles} from "@material-ui/core";
 import {GoogleCharts} from 'google-charts';
-
-const styles = {};
 
 class NeoChart extends React.PureComponent {
     static propTypes = {
@@ -36,7 +33,7 @@ class NeoChart extends React.PureComponent {
     drawChartCallBack = () => {
         const {computedData} = this.props;
 
-        if (computedData.length > 0) { // neoChart with data
+        if (computedData.length > 1) { // neoChart with data
             // Init neoChart
             if (!this.neoChart) {
                 this.neoChart = new GoogleCharts.api.visualization.BarChart(document.getElementById('neo_chart'));
@@ -71,10 +68,15 @@ class NeoChart extends React.PureComponent {
     }
 
     render() {
+        const {computedData} = this.props;
+
         return (
-            <div id='neo_chart' style={{height: '900px'}}></div>
+            <div>
+                {computedData.length < 2 && <p style={{fontSize: '20px'}}>Empty chart :(</p>}
+                <div id='neo_chart' style={{height: '900px'}}></div>
+            </div>
         )
     }
 }
 
-export default withStyles(styles)(NeoChart);
+export default NeoChart;

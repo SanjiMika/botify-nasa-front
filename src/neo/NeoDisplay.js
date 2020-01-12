@@ -3,20 +3,12 @@ import {Card, CardHeader, IconButton, LinearProgress, withStyles} from "@materia
 import dataProvider from "../provider/dataProvider";
 import RefreshIcon from "@material-ui/icons/Refresh";
 import NeoChart from "./NeoChart";
+import NeoFilter from "./utils/NeoFilter";
 
 const styles = {
-    graphBlock: {
-        backgroundColor: 'transparent'
-    },
     cardHeader: {
         textAlign: "left",
-        borderBottom: '1px #e8e8e8 solid',
-
-        '@media (max-width: 600px)': {
-            padding: '16px !important',
-            fontSize: '20px',
-            lineHeight: '1.2'
-        }
+        borderBottom: '2px #e8e8e8 solid',
     },
 };
 
@@ -28,6 +20,8 @@ class NeoDisplay extends React.PureComponent {
             componentState: 'loading', // loading => successed, error
             computedData: []
         };
+        this.neoFilterValue = '';
+        this.rawData = [];
     };
 
     fetchData = () => {
@@ -36,26 +30,47 @@ class NeoDisplay extends React.PureComponent {
         })
             .then(({data}) => {
                 if (this._isMounted) {
-                    let computedData = [];
-                    computedData.push(['Neo Name', 'Min Estimated Diameter (km)', 'Max Estimated Diameter (km)']);
-
                     const rawData = data['near_earth_objects'];
                     for (let i = 0; i < rawData.length; i++) {
                         let ele = rawData[i];
-                        computedData.push([ele.name, ele.estimated_diameter.kilometers.estimated_diameter_min, ele.estimated_diameter.kilometers.estimated_diameter_max]);
+                        this.rawData.push([
+                            ele.name,
+                            ele.estimated_diameter.kilometers.estimated_diameter_min,
+                            ele.estimated_diameter.kilometers.estimated_diameter_max,
+                            ele.close_approach_data[0] ? ele.close_approach_data[0].orbiting_body : null]);
                     }
                     // sorted by average estimated diameter descending
-                    computedData.sort(function (a, b) {
+                    this.rawData.sort(function (a, b) {
                         return b[1] + b[2] - (a[1] + a[2]);
                     });
-                    this.setState({componentState: 'successed', computedData: computedData});
+
+                    this.setState({componentState: 'successed', computedData: this.createComputedData()});
                 }
             })
-            .catch(() => {
+            .catch((e) => {
+                console.warn('error', e);
                 if (this._isMounted) {
+                    this.rawData = [];
                     this.setState({componentState: 'error', computedData: []});
                 }
             })
+    };
+
+    createComputedData = (useNeoFilter = false) => {
+        let computedData = [];
+        computedData.push(['Neo Name', 'Min Estimated Diameter (km)', 'Max Estimated Diameter (km)']);
+        for (let i = 0; i < this.rawData.length; i++) {
+            let ele = this.rawData[i];
+            if (useNeoFilter) {
+                if (ele[3] === this.neoFilterValue) {
+                    computedData.push([ele[0], ele[1], ele[2]]);
+                }
+            } else {
+                computedData.push([ele[0], ele[1], ele[2]]);
+            }
+        }
+
+        return computedData;
     };
 
     componentDidMount() {
@@ -76,6 +91,15 @@ class NeoDisplay extends React.PureComponent {
         }, 500);
     };
 
+    changeNeoFilterValue = (neoFilterValue) => {
+        this.neoFilterValue = neoFilterValue;
+        if (neoFilterValue) {
+            this.setState({computedData: this.createComputedData(true)});
+        } else {
+            this.setState({computedData: this.createComputedData()});
+        }
+    };
+
     render() {
         const {componentState, computedData} = this.state;
         const {classes} = this.props;
@@ -83,24 +107,28 @@ class NeoDisplay extends React.PureComponent {
         let infoChart = '';
 
         if (componentState === 'loading') {
-            infoChart = (<div className={classes.BackgroundLoad}><LinearProgress/></div>);
+            infoChart = (<div><LinearProgress/></div>);
         } else if (componentState === 'error') {
-            infoChart = (<div className={classes.BackgroundLoad}>Server communication error</div>);
+            infoChart = (<div style={{backgroundColor: "red", fontStyle: "italic"}}>Server communication error</div>);
         }
 
         return (
             <Card className={classes.graphBlock}>
                 <CardHeader
-                    title='Step 1: Data Visualization'
+                    title='Data Visualization'
                     className={classes.cardHeader}
                     action={
-                        <IconButton aria-label="refresh" onClick={this.refreshData}>
-                            <RefreshIcon/>
-                        </IconButton>
+                        <div>
+                            <NeoFilter changeNeoFilterValue={this.changeNeoFilterValue}/>
+                            <IconButton aria-label="refresh" onClick={this.refreshData}>
+                                <RefreshIcon/>
+                            </IconButton>
+                        </div>
                     }
                 />
                 <div>
                     {infoChart}
+                    <br/>
                     <NeoChart computedData={computedData}/>
                 </div>
             </Card>
