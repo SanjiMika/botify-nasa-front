@@ -6,6 +6,7 @@ import NeoChart from "./NeoChart";
 import NeoFilter from "./utils/NeoFilter";
 import NeoTable from "./NeoTable";
 import NeoDisplayType from "./utils/NeoDisplayType";
+import ExportCSVButton from "./utils/ExportCSVButton";
 
 const styles = {
     cardHeader: {
@@ -126,6 +127,8 @@ class NeoDisplay extends React.PureComponent {
                             <NeoDisplayType changeNeoDisplayType={this.changeNeoDisplayType}/>
                             &nbsp;&nbsp;&nbsp;
                             <NeoFilter changeNeoFilterValue={this.changeNeoFilterValue}/>
+                            &nbsp;&nbsp;&nbsp;
+                            <ExportCSVButton computedData={computedData}/>
                             <IconButton aria-label="refresh" onClick={this.refreshData}>
                                 <RefreshIcon/>
                             </IconButton>
@@ -135,9 +138,11 @@ class NeoDisplay extends React.PureComponent {
                 <div>
                     {infoChart}
                     <br/>
+
                     {(neoDisplayType === "table" || neoDisplayType === "all") &&
                     <NeoTable computedData={computedData}/>}
                     <br/>
+
                     {(neoDisplayType === "chart" || neoDisplayType === "all") &&
                     <NeoChart computedData={computedData}/>}
                 </div>
