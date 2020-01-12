@@ -15,8 +15,7 @@ class NeoChart extends React.PureComponent {
         // Meta for neoChart
         this.chartOptions = {
             chart: {
-                title: 'Population of Largest U.S. Cities',
-                subtitle: 'Based on most recent and previous census data'
+                title: 'Neo Chart',
             },
             hAxis: {
                 title: 'Estimated Diameter (km)',

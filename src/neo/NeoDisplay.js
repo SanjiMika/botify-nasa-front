@@ -4,6 +4,8 @@ import dataProvider from "../provider/dataProvider";
 import RefreshIcon from "@material-ui/icons/Refresh";
 import NeoChart from "./NeoChart";
 import NeoFilter from "./utils/NeoFilter";
+import NeoTable from "./NeoTable";
+import NeoDisplayType from "./utils/NeoDisplayType";
 
 const styles = {
     cardHeader: {
@@ -18,7 +20,8 @@ class NeoDisplay extends React.PureComponent {
         this._isMounted = true;
         this.state = {
             componentState: 'loading', // loading => successed, error
-            computedData: []
+            computedData: [],
+            neoDisplayType: 'chart',
         };
         this.neoFilterValue = '';
         this.rawData = [];
@@ -30,6 +33,7 @@ class NeoDisplay extends React.PureComponent {
         })
             .then(({data}) => {
                 if (this._isMounted) {
+                    this.rawData = [];
                     const rawData = data['near_earth_objects'];
                     for (let i = 0; i < rawData.length; i++) {
                         let ele = rawData[i];
@@ -56,12 +60,12 @@ class NeoDisplay extends React.PureComponent {
             })
     };
 
-    createComputedData = (useNeoFilter = false) => {
+    createComputedData = () => {
         let computedData = [];
         computedData.push(['Neo Name', 'Min Estimated Diameter (km)', 'Max Estimated Diameter (km)']);
         for (let i = 0; i < this.rawData.length; i++) {
             let ele = this.rawData[i];
-            if (useNeoFilter) {
+            if (this.neoFilterValue) {
                 if (ele[3] === this.neoFilterValue) {
                     computedData.push([ele[0], ele[1], ele[2]]);
                 }
@@ -93,15 +97,15 @@ class NeoDisplay extends React.PureComponent {
 
     changeNeoFilterValue = (neoFilterValue) => {
         this.neoFilterValue = neoFilterValue;
-        if (neoFilterValue) {
-            this.setState({computedData: this.createComputedData(true)});
-        } else {
-            this.setState({computedData: this.createComputedData()});
-        }
+        this.setState({computedData: this.createComputedData()});
+    };
+
+    changeNeoDisplayType = (neoDisplayType) => {
+        this.setState({neoDisplayType: neoDisplayType});
     };
 
     render() {
-        const {componentState, computedData} = this.state;
+        const {componentState, computedData, neoDisplayType} = this.state;
         const {classes} = this.props;
 
         let infoChart = '';
@@ -119,6 +123,8 @@ class NeoDisplay extends React.PureComponent {
                     className={classes.cardHeader}
                     action={
                         <div>
+                            <NeoDisplayType changeNeoDisplayType={this.changeNeoDisplayType}/>
+                            &nbsp;&nbsp;&nbsp;
                             <NeoFilter changeNeoFilterValue={this.changeNeoFilterValue}/>
                             <IconButton aria-label="refresh" onClick={this.refreshData}>
                                 <RefreshIcon/>
@@ -129,7 +135,11 @@ class NeoDisplay extends React.PureComponent {
                 <div>
                     {infoChart}
                     <br/>
-                    <NeoChart computedData={computedData}/>
+                    {(neoDisplayType === "table" || neoDisplayType === "all") &&
+                    <NeoTable computedData={computedData}/>}
+                    <br/>
+                    {(neoDisplayType === "chart" || neoDisplayType === "all") &&
+                    <NeoChart computedData={computedData}/>}
                 </div>
             </Card>
         )
